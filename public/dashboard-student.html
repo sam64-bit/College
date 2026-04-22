@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - AlumniHub++</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container navbar-content">
+      <a href="/dashboard-student" class="navbar-brand">AlumniHub++ - Student Dashboard</a>
+      <div class="navbar-menu">
+        <a href="/dashboard-student">Dashboard</a>
+        <a href="/connections">Connections</a>
+        <a href="/opportunities">Opportunities</a>
+        <a href="/chat">Messages</a>
+        <a href="/feed">Feed</a>
+        <a href="/profile">Profile</a>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="container">
+      <div class="dashboard-header">
+        <h1>Welcome, <span id="user-name"></span>!</h1>
+        <p>Your professional networking dashboard</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3 id="connections-count">0</h3>
+          <p>Total Connections</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="opportunities-count">0</h3>
+          <p>Active Opportunities</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="applications-count">0</h3>
+          <p>My Applications</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="suggestions-count">0</h3>
+          <p>Connection Suggestions</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Suggested Connections</h2>
+        <div id="suggestions-list" class="card-list">
+          <div class="loading">Loading suggestions...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Recent Opportunities</h2>
+        <div id="opportunities-list" class="card-list">
+          <div class="loading">Loading opportunities...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Latest Announcements</h2>
+        <div id="announcements-list" class="card-list">
+          <div class="loading">Loading announcements...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    if (!checkAuth() || !checkRole('student')) {
+      throw new Error('Unauthorized');
+    }
+
+    const user = getUser();
+    document.getElementById('user-name').textContent = user.name;
+
+    async function loadDashboard() {
+      try {
+        const [connections, opportunities, applications, suggestions, announcements] = await Promise.all([
+          apiRequest('/connections/list'),
+          apiRequest('/opportunities/list?status=active'),
+          apiRequest('/opportunities/my-applications'),
+          apiRequest('/connections/suggestions'),
+          apiRequest('/feed/announcements')
+        ]);
+
+        document.getElementById('connections-count').textContent = connections.connections.length;
+        document.getElementById('opportunities-count').textContent = opportunities.opportunities.length;
+        document.getElementById('applications-count').textContent = applications.applications.length;
+        document.getElementById('suggestions-count').textContent = suggestions.suggestions.length;
+
+        displaySuggestions(suggestions.suggestions);
+        displayOpportunities(opportunities.opportunities.slice(0, 5));
+        displayAnnouncements(announcements.announcements.slice(0, 3));
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+      }
+    }
+
+    function displaySuggestions(suggestions) {
+      const container = document.getElementById('suggestions-list');
+
+      if (suggestions.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No suggestions available</h3></div>';
+        return;
+      }
+
+      container.innerHTML = suggestions.slice(0, 5).map(person => `
+        <div class="user-card">
+          <div class="user-avatar">${getInitials(person.name)}</div>
+          <div class="user-info">
+            <h3>${person.name}</h3>
+            <p>${person.role === 'alumni' ? `${person.job_role} at ${person.company}` : `${person.branch} - ${person.batch_year}`}</p>
+            <p><span class="badge badge-primary">Match Score: ${person.suggestion_score}</span></p>
+          </div>
+          <div class="user-actions">
+            <button class="btn btn-sm btn-primary" onclick="sendConnection('${person.id}')">Connect</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function displayOpportunities(opportunities) {
+      const container = document.getElementById('opportunities-list');
+
+      if (opportunities.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No opportunities available</h3></div>';
+        return;
+      }
+
+      container.innerHTML = opportunities.map(opp => `
+        <div class="card-item">
+          <h3>${opp.title}</h3>
+          <p><span class="badge badge-primary">${opp.type}</span> at ${opp.company}</p>
+          <p>${opp.description.substring(0, 150)}...</p>
+          <p style="font-size: 12px; color: #6b7280;">Posted ${formatDate(opp.created_at)}</p>
+          <button class="btn btn-sm btn-primary" style="margin-top: 10px;" onclick="window.location.href='/opportunities'">View Details</button>
+        </div>
+      `).join('');
+    }
+
+    function displayAnnouncements(announcements) {
+      const container = document.getElementById('announcements-list');
+
+      if (announcements.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No announcements</h3></div>';
+        return;
+      }
+
+      container.innerHTML = announcements.map(ann => `
+        <div class="card-item">
+          <h3>${ann.title}</h3>
+          <p>${ann.content}</p>
+          <p style="font-size: 12px; color: #6b7280;">${formatDate(ann.created_at)}</p>
+        </div>
+      `).join('');
+    }
+
+    async function sendConnection(receiverId) {
+      try {
+        await apiRequest('/connections/request', {
+          method: 'POST',
+          body: JSON.stringify({ receiverId })
+        });
+        alert('Connection request sent!');
+        loadDashboard();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

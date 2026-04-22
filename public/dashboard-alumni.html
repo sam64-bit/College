@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alumni Dashboard - CampusConnect</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container navbar-content">
+      <a href="/dashboard-alumni" class="navbar-brand">AlumniHub++ - Alumni Dashboard</a>
+      <div class="navbar-menu">
+        <a href="/dashboard-alumni">Dashboard</a>
+        <a href="/connections">Connections</a>
+        <a href="/opportunities">Opportunities</a>
+        <a href="/chat">Messages</a>
+        <a href="/feed">Feed</a>
+        <a href="/profile">Profile</a>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="container">
+      <div class="dashboard-header">
+        <h1>Welcome, <span id="user-name"></span>!</h1>
+        <p>Alumni Dashboard - Help students grow their careers</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3 id="connections-count">0</h3>
+          <p>Total Connections</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="opportunities-posted">0</h3>
+          <p>Opportunities Posted</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="applications-received">0</h3>
+          <p>Applications Received</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="requests-count">0</h3>
+          <p>Connection Requests</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0;">My Opportunities</h2>
+          <button class="btn btn-primary" onclick="window.location.href='/opportunities'">Post New Opportunity</button>
+        </div>
+        <div id="opportunities-list" class="card-list">
+          <div class="loading">Loading opportunities...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Connection Requests</h2>
+        <div id="requests-list" class="card-list">
+          <div class="loading">Loading requests...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    if (!checkAuth() || !checkRole('alumni')) {
+      throw new Error('Unauthorized');
+    }
+
+    const user = getUser();
+    document.getElementById('user-name').textContent = user.name;
+
+    async function loadDashboard() {
+      try {
+        const [connections, opportunities, requests] = await Promise.all([
+          apiRequest('/connections/list'),
+          apiRequest('/opportunities/list'),
+          apiRequest('/connections/requests')
+        ]);
+
+        document.getElementById('connections-count').textContent = connections.connections.length;
+        document.getElementById('opportunities-posted').textContent = opportunities.opportunities.filter(o => o.posted_by === user.id).length;
+        document.getElementById('requests-count').textContent = requests.requests.length;
+
+        const myOpps = opportunities.opportunities.filter(o => o.posted_by === user.id);
+        displayOpportunities(myOpps);
+        displayRequests(requests.requests);
+
+        let totalApps = 0;
+        for (const opp of myOpps) {
+          const apps = await apiRequest(`/opportunities/${opp.id}/applications`);
+          totalApps += apps.applications.length;
+        }
+        document.getElementById('applications-received').textContent = totalApps;
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+      }
+    }
+
+    function displayOpportunities(opportunities) {
+      const container = document.getElementById('opportunities-list');
+
+      if (opportunities.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No opportunities posted yet</h3></div>';
+        return;
+      }
+
+      container.innerHTML = opportunities.map(opp => `
+        <div class="card-item">
+          <h3>${opp.title}</h3>
+          <p><span class="badge badge-${opp.status === 'active' ? 'success' : 'warning'}">${opp.status}</span> <span class="badge badge-primary">${opp.type}</span></p>
+          <p>${opp.description.substring(0, 150)}...</p>
+          <button class="btn btn-sm btn-primary" style="margin-top: 10px;" onclick="window.location.href='/opportunities'">View Applications</button>
+        </div>
+      `).join('');
+    }
+
+    function displayRequests(requests) {
+      const container = document.getElementById('requests-list');
+
+      if (requests.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No pending requests</h3></div>';
+        return;
+      }
+
+      container.innerHTML = requests.map(req => `
+        <div class="user-card">
+          <div class="user-avatar">${getInitials(req.sender.name)}</div>
+          <div class="user-info">
+            <h3>${req.sender.name}</h3>
+            <p>${req.sender.branch} - ${req.sender.role}</p>
+            <p style="font-size: 12px; color: #6b7280;">Sent ${formatDate(req.created_at)}</p>
+          </div>
+          <div class="user-actions">
+            <button class="btn btn-sm btn-secondary" onclick="respondToRequest('${req.id}', 'accept')">Accept</button>
+            <button class="btn btn-sm btn-danger" onclick="respondToRequest('${req.id}', 'reject')">Reject</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function respondToRequest(requestId, action) {
+      try {
+        await apiRequest('/connections/respond', {
+          method: 'POST',
+          body: JSON.stringify({ requestId, action })
+        });
+        loadDashboard();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

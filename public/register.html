@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - CampusConnect</title>
+ <style>
+  /* ================= PAGE BACKGROUND ================= */
+body{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: linear-gradient(135deg,#ff9a9e 0%,#fad0c4 25%,#a1c4fd 60%,#c2e9fb 100%);
+  font-family:"Poppins","Segoe UI",sans-serif;
+}
+
+/* ================= CONTAINER ================= */
+.auth-container{
+  width:100%;
+  max-width:560px;
+  padding:30px 20px;
+}
+
+/* ================= CARD ================= */
+.auth-box{
+  background:linear-gradient(160deg,#ffffff,#f5f7ff);
+  border-radius:18px;
+  padding:40px 40px;
+  box-shadow:0 25px 60px rgba(0,0,0,0.15);
+  animation:fadeUp .5s ease;
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(25px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ================= TITLE ================= */
+.auth-box h1{
+  text-align:center;
+  font-size:32px;
+  margin-bottom:20px;
+  background:linear-gradient(90deg,#ff6a00,#6a5cff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+/* ================= FORM ================= */
+.form-group{
+  margin-bottom:18px;
+}
+
+label{
+  font-size:14px;
+  font-weight:600;
+  color:#374151;
+  margin-bottom:6px;
+  display:block;
+}
+
+/* inputs */
+#register-form input,
+#register-form textarea,
+#register-form select{
+  width:100%;
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid #d1d5db;
+  background:#f9fafb;
+  font-size:14px;
+  transition:.25s;
+}
+
+#register-form input:focus,
+#register-form textarea:focus,
+#register-form select:focus{
+  outline:none;
+  background:white;
+  border-color:#6a5cff;
+  box-shadow:0 0 0 3px rgba(106,92,255,.18);
+}
+
+textarea{
+  min-height:90px;
+  resize:vertical;
+}
+
+/* ================= ROLE SECTIONS ================= */
+#student-fields,
+#alumni-fields{
+  margin-top:18px;
+  padding:18px;
+  border-radius:14px;
+  animation:fadeUp .35s ease;
+}
+
+/* student block */
+#student-fields{
+  background:linear-gradient(135deg,#eef2ff,#ecfeff);
+  border-left:5px solid #6a5cff;
+}
+
+/* alumni block */
+#alumni-fields{
+  background:linear-gradient(135deg,#fff7ed,#fef3c7);
+  border-left:5px solid #ff7a18;
+}
+
+/* ================= CHECKBOX ================= */
+.checkbox-group{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.checkbox-group input{
+  width:18px;
+  height:18px;
+  accent-color:#6a5cff;
+}
+
+/* ================= BUTTON ================= */
+.btn-primary{
+  width:100%;
+  padding:14px;
+  margin-top:20px;
+  border:none;
+  border-radius:12px;
+  color:white;
+  font-weight:600;
+  font-size:15px;
+  background:linear-gradient(135deg,#ff7a18,#ff3c83);
+  cursor:pointer;
+  transition:.25s;
+}
+
+.btn-primary:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 25px rgba(255,60,131,.35);
+}
+
+.btn-primary:active{
+  transform:scale(.97);
+}
+
+/* ================= MESSAGES ================= */
+.error-message{
+  background:#ffe4e6;
+  color:#b91c1c;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:15px;
+}
+
+.success-message{
+  background:#dcfce7;
+  color:#166534;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:15px;
+}
+
+/* ================= FOOTER LINK ================= */
+.auth-box p{
+  text-align:center;
+  margin-top:20px;
+}
+
+.auth-box a{
+  color:#6a5cff;
+  font-weight:600;
+  text-decoration:none;
+}
+
+.auth-box a:hover{
+  text-decoration:underline;
+}
+
+/* ================= MOBILE ================= */
+@media(max-width:600px){
+  .auth-box{
+    padding:28px 20px;
+  }
+}
+ </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-box" style="max-width: 700px;">
+      <h1>Create Account</h1>
+
+      <div id="error-message" class="error-message" style="display: none;"></div>
+      <div id="success-message" class="success-message" style="display: none;"></div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label for="role">I am a</label>
+          <select id="role" required>
+            <option value="">Select Role</option>
+            <option value="student">Student</option>
+            <option value="alumni">Alumni</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="branch">Branch/Department</label>
+          <input type="text" id="branch" required>
+        </div>
+
+        <div class="form-group">
+          <label for="batch_year">Batch Year</label>
+          <input type="number" id="batch_year" required min="2000" max="2030">
+        </div>
+
+        <div id="student-fields" style="display: none;">
+          <div class="form-group">
+            <label for="career_interests">Career Interests</label>
+            <textarea id="career_interests"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="dream_companies">Dream Companies</label>
+            <input type="text" id="dream_companies" placeholder="e.g., Google, Microsoft">
+          </div>
+
+          <div class="checkbox-group form-group">
+            <input type="checkbox" id="looking_for_guidance">
+            <label for="looking_for_guidance">Looking for guidance/mentorship</label>
+          </div>
+        </div>
+
+        <div id="alumni-fields" style="display: none;">
+          <div class="form-group">
+            <label for="company">Current Company</label>
+            <input type="text" id="company">
+          </div>
+
+          <div class="form-group">
+            <label for="job_role">Job Role</label>
+            <input type="text" id="job_role">
+          </div>
+
+          <div class="form-group">
+            <label for="career_path">Career Path</label>
+            <select id="career_path">
+              <option value="">Select Career Path</option>
+              <option value="placement">Placement</option>
+              <option value="higher_studies">Higher Studies</option>
+              <option value="govt">Government</option>
+              <option value="startup">Startup</option>
+            </select>
+          </div>
+
+          <div class="checkbox-group form-group">
+            <input type="checkbox" id="open_for_referral">
+            <label for="open_for_referral">Open for providing referrals</label>
+          </div>
+
+          <div class="checkbox-group form-group">
+            <input type="checkbox" id="open_for_guidance">
+            <label for="open_for_guidance">Open for providing guidance</label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Register</button>
+      </form>
+
+      <p style="text-align: center; margin-top: 20px;">
+        Already have an account? <a href="/login" style="color: #2563eb;">Login here</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    const roleSelect = document.getElementById('role');
+    const studentFields = document.getElementById('student-fields');
+    const alumniFields = document.getElementById('alumni-fields');
+
+    roleSelect.addEventListener('change', (e) => {
+      const role = e.target.value;
+      studentFields.style.display = role === 'student' ? 'block' : 'none';
+      alumniFields.style.display = role === 'alumni' ? 'block' : 'none';
+    });
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+      hideSuccess();
+
+      const role = document.getElementById('role').value;
+
+      const userData = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        role: role,
+        branch: document.getElementById('branch').value,
+        batch_year: parseInt(document.getElementById('batch_year').value)
+      };
+
+      if (role === 'student') {
+        userData.career_interests = document.getElementById('career_interests').value;
+        userData.dream_companies = document.getElementById('dream_companies').value;
+        userData.looking_for_guidance = document.getElementById('looking_for_guidance').checked;
+      } else if (role === 'alumni') {
+        userData.company = document.getElementById('company').value;
+        userData.job_role = document.getElementById('job_role').value;
+        userData.career_path = document.getElementById('career_path').value;
+        userData.open_for_referral = document.getElementById('open_for_referral').checked;
+        userData.open_for_guidance = document.getElementById('open_for_guidance').checked;
+      }
+
+      try {
+        const data = await apiRequest('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify(userData)
+        });
+
+        showSuccess('Registration successful! Your account is pending admin approval. You will be able to login once approved.');
+        document.getElementById('register-form').reset();
+
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 3000);
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+  </script>
+</body>
+</html>

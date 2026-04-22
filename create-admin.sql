@@ -1,0 +1,9 @@
+-- MongoDB note:
+-- This project now uses MongoDB, so SQL scripts are not used.
+-- To create the default admin account, run:
+--
+--   node seed.js
+--
+-- This will create (if absent):
+--   email: admin@campus.edu
+--   password: admin123

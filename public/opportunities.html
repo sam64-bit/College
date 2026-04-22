@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opportunities - CampusConnect</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container navbar-content">
+      <a href="/" class="navbar-brand">AlumniHub++ - Opportunities</a>
+      <div class="navbar-menu">
+        <a href="/" id="dashboard-link">Dashboard</a>
+        <a href="/connections">Connections</a>
+        <a href="/opportunities">Opportunities</a>
+        <a href="/chat">Messages</a>
+        <a href="/feed">Feed</a>
+        <a href="/profile">Profile</a>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="container">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0;">Opportunities</h2>
+          <button class="btn btn-primary" id="post-opp-btn" style="display: none;" onclick="openModal('opportunity-modal')">Post Opportunity</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-primary" onclick="filterOpportunities('all')">All</button>
+          <button class="btn btn-sm btn-outline" onclick="filterOpportunities('internship')">Internships</button>
+          <button class="btn btn-sm btn-outline" onclick="filterOpportunities('job')">Jobs</button>
+          <button class="btn btn-sm btn-outline" onclick="filterOpportunities('referral')">Referrals</button>
+          <button class="btn btn-sm btn-outline" onclick="filterOpportunities('project')">Projects</button>
+        </div>
+
+        <div id="opportunities-list" class="card-list">
+          <div class="loading">Loading opportunities...</div>
+        </div>
+      </div>
+
+      <div class="card" id="my-applications" style="display: none;">
+        <h2>My Applications</h2>
+        <div id="applications-list" class="card-list">
+          <div class="loading">Loading applications...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="opportunity-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Post New Opportunity</h2>
+        <span class="modal-close" onclick="closeModal('opportunity-modal')">&times;</span>
+      </div>
+      <form id="opportunity-form">
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="opp-title" required>
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select id="opp-type" required>
+            <option value="internship">Internship</option>
+            <option value="job">Job</option>
+            <option value="referral">Referral</option>
+            <option value="project">Project</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Company</label>
+          <input type="text" id="opp-company" required>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="opp-description" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Requirements</label>
+          <textarea id="opp-requirements"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Post Opportunity</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="apply-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Apply to Opportunity</h2>
+        <span class="modal-close" onclick="closeModal('apply-modal')">&times;</span>
+      </div>
+      <div id="apply-content"></div>
+      <button class="btn btn-primary" onclick="submitApplication()">Submit Application</button>
+    </div>
+  </div>
+
+  <div id="applicants-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Applications</h2>
+        <span class="modal-close" onclick="closeModal('applicants-modal')">&times;</span>
+      </div>
+      <div id="applicants-list"></div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    if (!checkAuth()) {
+      throw new Error('Unauthorized');
+    }
+
+    const user = getUser();
+    document.getElementById('dashboard-link').href = user.role === 'alumni' ? '/dashboard-alumni' : '/dashboard-student';
+
+    if (user.role === 'alumni') {
+      document.getElementById('post-opp-btn').style.display = 'block';
+    } else {
+      document.getElementById('my-applications').style.display = 'block';
+      loadApplications();
+    }
+
+    let currentFilter = 'all';
+    let selectedOpportunity = null;
+
+    function filterOpportunities(type) {
+      currentFilter = type;
+      loadOpportunities();
+    }
+
+    async function loadOpportunities() {
+      try {
+        const endpoint = currentFilter === 'all'
+          ? '/opportunities/list'
+          : `/opportunities/list?type=${currentFilter}`;
+
+        const data = await apiRequest(endpoint);
+        displayOpportunities(data.opportunities);
+      } catch (error) {
+        console.error('Error loading opportunities:', error);
+      }
+    }
+
+    function displayOpportunities(opportunities) {
+      const container = document.getElementById('opportunities-list');
+
+      if (opportunities.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No opportunities found</h3></div>';
+        return;
+      }
+
+      container.innerHTML = opportunities.map(opp => `
+        <div class="card-item">
+          <h3>${opp.title}</h3>
+          <p>
+            <span class="badge badge-primary">${opp.type}</span>
+            <span class="badge badge-success">${opp.company}</span>
+          </p>
+          <p>${opp.description}</p>
+          ${opp.requirements ? `<p><strong>Requirements:</strong> ${opp.requirements}</p>` : ''}
+          <p style="font-size: 12px; color: #6b7280;">Posted by ${opp.poster.name} on ${formatDate(opp.created_at)}</p>
+          <div style="margin-top: 10px;">
+            ${user.role === 'student' ? `
+              <button class="btn btn-sm btn-primary" onclick="applyToOpportunity('${opp.id}', '${opp.title}')">Apply Now</button>
+            ` : ''}
+            ${opp.posted_by === user.id ? `
+              <button class="btn btn-sm btn-secondary" onclick="viewApplications('${opp.id}')">View Applications</button>
+              <button class="btn btn-sm btn-danger" onclick="closeOpportunity('${opp.id}')">Close</button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadApplications() {
+      try {
+        const data = await apiRequest('/opportunities/my-applications');
+        displayApplications(data.applications);
+      } catch (error) {
+        console.error('Error loading applications:', error);
+      }
+    }
+
+    function displayApplications(applications) {
+      const container = document.getElementById('applications-list');
+
+      if (applications.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No applications yet</h3></div>';
+        return;
+      }
+
+      container.innerHTML = applications.map(app => `
+        <div class="card-item">
+          <h3>${app.opportunity.title}</h3>
+          <p><span class="badge badge-primary">${app.opportunity.type}</span> at ${app.opportunity.company}</p>
+          <p><span class="badge badge-${app.status === 'shortlisted' ? 'success' : app.status === 'rejected' ? 'danger' : 'warning'}">${app.status.toUpperCase()}</span></p>
+          <p style="font-size: 12px; color: #6b7280;">Applied on ${formatDate(app.created_at)}</p>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('opportunity-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const oppData = {
+        title: document.getElementById('opp-title').value,
+        type: document.getElementById('opp-type').value,
+        company: document.getElementById('opp-company').value,
+        description: document.getElementById('opp-description').value,
+        requirements: document.getElementById('opp-requirements').value
+      };
+
+      try {
+        await apiRequest('/opportunities/create', {
+          method: 'POST',
+          body: JSON.stringify(oppData)
+        });
+        closeModal('opportunity-modal');
+        document.getElementById('opportunity-form').reset();
+        loadOpportunities();
+        alert('Opportunity posted successfully!');
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    function applyToOpportunity(oppId, oppTitle) {
+      selectedOpportunity = oppId;
+      document.getElementById('apply-content').innerHTML = `
+        <p>Applying to: <strong>${oppTitle}</strong></p>
+        <p>Your profile resume will be submitted with this application.</p>
+      `;
+      openModal('apply-modal');
+    }
+
+    async function submitApplication() {
+      try {
+        await apiRequest(`/opportunities/${selectedOpportunity}/apply`, {
+          method: 'POST',
+          body: JSON.stringify({ resume_url: user.resume_url })
+        });
+        closeModal('apply-modal');
+        alert('Application submitted successfully!');
+        if (user.role === 'student') {
+          loadApplications();
+        }
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function viewApplications(oppId) {
+      try {
+        const data = await apiRequest(`/opportunities/${oppId}/applications`);
+        displayApplicants(data.applications, oppId);
+        openModal('applicants-modal');
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function displayApplicants(applicants, oppId) {
+      const container = document.getElementById('applicants-list');
+
+      if (applicants.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No applications yet</h3></div>';
+        return;
+      }
+
+      container.innerHTML = applicants.map(app => `
+        <div class="user-card" style="margin-bottom: 15px;">
+          <div class="user-avatar">${getInitials(app.applicant.name)}</div>
+          <div class="user-info">
+            <h3>${app.applicant.name}</h3>
+            <p>${app.applicant.branch} - ${app.applicant.batch_year}</p>
+            <p><span class="badge badge-${app.status === 'shortlisted' ? 'success' : app.status === 'rejected' ? 'danger' : 'warning'}">${app.status}</span></p>
+            <p style="font-size: 12px;">Applied ${formatDate(app.created_at)}</p>
+          </div>
+          <div class="user-actions">
+            <button class="btn btn-sm btn-secondary" onclick="updateAppStatus('${app.id}', 'shortlisted')">Shortlist</button>
+            <button class="btn btn-sm btn-danger" onclick="updateAppStatus('${app.id}', 'rejected')">Reject</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function updateAppStatus(appId, status) {
+      try {
+        await apiRequest(`/opportunities/application/${appId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status })
+        });
+        alert('Application status updated!');
+        closeModal('applicants-modal');
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function closeOpportunity(oppId) {
+      if (!confirm('Are you sure you want to close this opportunity?')) return;
+
+      try {
+        await apiRequest(`/opportunities/${oppId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'closed' })
+        });
+        loadOpportunities();
+        alert('Opportunity closed successfully!');
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    loadOpportunities();
+  </script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connections - CampusConnect</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container navbar-content">
+      <a href="/" class="navbar-brand">AlumniHub++ - Connections</a>
+      <div class="navbar-menu">
+        <a href="/" id="dashboard-link">Dashboard</a>
+        <a href="/connections">Connections</a>
+        <a href="/opportunities">Opportunities</a>
+        <a href="/chat">Messages</a>
+        <a href="/feed">Feed</a>
+        <a href="/profile">Profile</a>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="container">
+      <div class="card">
+        <h2>Search Users</h2>
+        <div class="form-group">
+          <input type="text" id="search-input" placeholder="Search by name, email, or company..." style="width: 100%;">
+        </div>
+        <div id="search-results" class="card-list"></div>
+      </div>
+
+      <div class="card">
+        <h2>My Connections</h2>
+        <div id="connections-list" class="card-list">
+          <div class="loading">Loading connections...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Suggested Connections</h2>
+        <div id="suggestions-list" class="card-list">
+          <div class="loading">Loading suggestions...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    if (!checkAuth()) {
+      throw new Error('Unauthorized');
+    }
+
+    const user = getUser();
+    document.getElementById('dashboard-link').href = user.role === 'alumni' ? '/dashboard-alumni' : '/dashboard-student';
+
+    let searchTimeout;
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      clearTimeout(searchTimeout);
+      const query = e.target.value.trim();
+
+      if (query.length < 2) {
+        document.getElementById('search-results').innerHTML = '';
+        return;
+      }
+
+      searchTimeout = setTimeout(async () => {
+        try {
+          const data = await apiRequest(`/connections/search?query=${encodeURIComponent(query)}`);
+          displaySearchResults(data.users);
+        } catch (error) {
+          console.error('Search error:', error);
+        }
+      }, 500);
+    });
+
+    async function loadConnections() {
+      try {
+        const [connections, suggestions] = await Promise.all([
+          apiRequest('/connections/list'),
+          apiRequest('/connections/suggestions')
+        ]);
+
+        displayConnections(connections.connections);
+        displaySuggestions(suggestions.suggestions);
+      } catch (error) {
+        console.error('Error loading connections:', error);
+      }
+    }
+
+    function displaySearchResults(users) {
+      const container = document.getElementById('search-results');
+
+      if (users.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No users found</p></div>';
+        return;
+      }
+
+      container.innerHTML = users.map(person => `
+        <div class="user-card">
+          <div class="user-avatar">${getInitials(person.name)}</div>
+          <div class="user-info">
+            <h3>${person.name}</h3>
+            <p>${person.role === 'alumni' ? `${person.job_role || 'Alumni'} ${person.company ? 'at ' + person.company : ''}` : `${person.branch} - ${person.batch_year}`}</p>
+          </div>
+          <div class="user-actions">
+            <button class="btn btn-sm btn-primary" onclick="sendConnection('${person.id}')">Connect</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function displayConnections(connections) {
+      const container = document.getElementById('connections-list');
+
+      if (connections.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No connections yet</h3><p>Start connecting with students and alumni</p></div>';
+        return;
+      }
+
+      container.innerHTML = connections.map(person => `
+        <div class="user-card">
+          <div class="user-avatar">${getInitials(person.name)}</div>
+          <div class="user-info">
+            <h3>${person.name}</h3>
+            <p>${person.role === 'alumni' ? `${person.job_role || 'Alumni'} ${person.company ? 'at ' + person.company : ''}` : `${person.branch} - ${person.batch_year}`}</p>
+            <p style="font-size: 12px; color: #6b7280;">Connected ${formatDate(person.connected_at)}</p>
+          </div>
+          <div class="user-actions">
+            <button class="btn btn-sm btn-primary" onclick="window.location.href='/chat?user=${person.id}'">Message</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function displaySuggestions(suggestions) {
+      const container = document.getElementById('suggestions-list');
+
+      if (suggestions.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No suggestions available</h3></div>';
+        return;
+      }
+
+      container.innerHTML = suggestions.map(person => `
+        <div class="user-card">
+          <div class="user-avatar">${getInitials(person.name)}</div>
+          <div class="user-info">
+            <h3>${person.name}</h3>
+            <p>${person.role === 'alumni' ? `${person.job_role || 'Alumni'} ${person.company ? 'at ' + person.company : ''}` : `${person.branch} - ${person.batch_year}`}</p>
+            <p><span class="badge badge-primary">Match Score: ${person.suggestion_score}</span></p>
+          </div>
+          <div class="user-actions">
+            <button class="btn btn-sm btn-primary" onclick="sendConnection('${person.id}')">Connect</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function sendConnection(receiverId) {
+      try {
+        await apiRequest('/connections/request', {
+          method: 'POST',
+          body: JSON.stringify({ receiverId })
+        });
+        alert('Connection request sent!');
+        loadConnections();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    loadConnections();
+  </script>
+</body>
+</html>

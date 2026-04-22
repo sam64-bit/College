@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Community Feed - CampusConnect</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container navbar-content">
+      <a href="/" class="navbar-brand">AlumniHub++ - Community Feed</a>
+      <div class="navbar-menu">
+        <a href="/" id="dashboard-link">Dashboard</a>
+        <a href="/connections">Connections</a>
+        <a href="/opportunities">Opportunities</a>
+        <a href="/chat">Messages</a>
+        <a href="/feed">Feed</a>
+        <a href="/profile">Profile</a>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="container">
+      <div class="card">
+        <h2>Create Post</h2>
+        <form id="post-form">
+          <div class="form-group">
+            <textarea id="post-content" placeholder="Share something with the community..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Post</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Community Feed</h2>
+        <div id="posts-list" class="card-list">
+          <div class="loading">Loading posts...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Announcements</h2>
+        <div id="announcements-list" class="card-list">
+          <div class="loading">Loading announcements...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    if (!checkAuth()) {
+      throw new Error('Unauthorized');
+    }
+
+    const user = getUser();
+    document.getElementById('dashboard-link').href = user.role === 'alumni' ? '/dashboard-alumni' : '/dashboard-student';
+
+    async function loadFeed() {
+      try {
+        const [posts, announcements] = await Promise.all([
+          apiRequest('/feed/posts'),
+          apiRequest('/feed/announcements')
+        ]);
+
+        displayPosts(posts.posts);
+        displayAnnouncements(announcements.announcements);
+      } catch (error) {
+        console.error('Error loading feed:', error);
+      }
+    }
+
+    function displayPosts(posts) {
+      const container = document.getElementById('posts-list');
+
+      if (posts.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No posts yet</h3><p>Be the first to share something!</p></div>';
+        return;
+      }
+
+      container.innerHTML = posts.map(post => {
+        const likes = Array.isArray(post.likes) ? post.likes : [];
+        const isLiked = likes.includes(user.id);
+        const likesCount = likes.length;
+
+        return `
+          <div class="card-item">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+              <div class="user-avatar" style="width: 40px; height: 40px; font-size: 16px;">${getInitials(post.author.name)}</div>
+              <div>
+                <h4 style="margin-bottom: 2px;">${post.author.name}</h4>
+                <p style="font-size: 12px; color: #6b7280;">${post.author.role === 'alumni' ? `${post.author.company || 'Alumni'}` : `${post.author.branch}`}</p>
+              </div>
+            </div>
+            <p style="margin-bottom: 10px;">${post.content}</p>
+            <div style="display: flex; gap: 15px; align-items: center;">
+              <button class="btn btn-sm ${isLiked ? 'btn-primary' : 'btn-outline'}" onclick="toggleLike('${post.id}')">
+                ${isLiked ? '❤️' : '🤍'} ${likesCount} ${likesCount === 1 ? 'Like' : 'Likes'}
+              </button>
+              <span style="font-size: 12px; color: #6b7280;">${formatDateTime(post.created_at)}</span>
+              ${post.author_id === user.id || user.role === 'admin' ? `
+                <button class="btn btn-sm btn-danger" onclick="deletePost('${post.id}')">Delete</button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function displayAnnouncements(announcements) {
+      const container = document.getElementById('announcements-list');
+
+      if (announcements.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No announcements</h3></div>';
+        return;
+      }
+
+      container.innerHTML = announcements.map(ann => `
+        <div class="card-item">
+          <h3>${ann.title}</h3>
+          <p>${ann.content}</p>
+          <p style="font-size: 12px; color: #6b7280;">Posted by Admin on ${formatDate(ann.created_at)}</p>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('post-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const content = document.getElementById('post-content').value.trim();
+
+      if (!content) return;
+
+      try {
+        await apiRequest('/feed/posts', {
+          method: 'POST',
+          body: JSON.stringify({ content })
+        });
+
+        document.getElementById('post-content').value = '';
+        loadFeed();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    async function toggleLike(postId) {
+      try {
+        await apiRequest(`/feed/posts/${postId}/like`, {
+          method: 'POST'
+        });
+        loadFeed();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function deletePost(postId) {
+      if (!confirm('Are you sure you want to delete this post?')) return;
+
+      try {
+        await apiRequest(`/feed/posts/${postId}`, {
+          method: 'DELETE'
+        });
+        loadFeed();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    loadFeed();
+  </script>
+</body>
+</html>

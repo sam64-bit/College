@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages - CampusConnect</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container navbar-content">
+      <a href="/" class="navbar-brand">AlumniHub++ - Messages</a>
+      <div class="navbar-menu">
+        <a href="/" id="dashboard-link">Dashboard</a>
+        <a href="/connections">Connections</a>
+        <a href="/opportunities">Opportunities</a>
+        <a href="/chat">Messages</a>
+        <a href="/feed">Feed</a>
+        <a href="/profile">Profile</a>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="container">
+      <div class="chat-container">
+        <div class="chat-list">
+          <h3 style="padding: 15px; border-bottom: 1px solid var(--border);">Conversations</h3>
+          <div id="conversations-list"></div>
+        </div>
+
+        <div class="chat-window">
+          <div class="chat-header" id="chat-header" style="display: none;">
+            <h3 id="chat-user-name"></h3>
+            <p id="chat-user-status" style="font-size: 12px; color: #6b7280;"></p>
+          </div>
+
+          <div id="empty-chat" class="empty-state" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+            <div>
+              <h3>Select a conversation</h3>
+              <p>Choose a connection to start messaging</p>
+            </div>
+          </div>
+
+          <div id="chat-messages" class="chat-messages" style="display: none;"></div>
+
+          <div id="chat-input-container" class="chat-input" style="display: none;">
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    if (!checkAuth()) {
+      throw new Error('Unauthorized');
+    }
+
+    const user = getUser();
+    document.getElementById('dashboard-link').href = user.role === 'alumni' ? '/dashboard-alumni' : '/dashboard-student';
+
+    let currentChat = null;
+    let socket = null;
+
+    function initSocket() {
+      socket = io();
+
+      socket.on('connect', () => {
+        socket.emit('user_online', user.id);
+      });
+
+      socket.on('receive_message', (data) => {
+        if (currentChat && data.senderId === currentChat.id) {
+          displayMessage(data.message, 'received');
+          markAsRead(data.senderId);
+        }
+        loadConversations();
+      });
+
+      socket.on('user_status', (data) => {
+        if (currentChat && data.userId === currentChat.id) {
+          document.getElementById('chat-user-status').textContent = data.status === 'online' ? 'Online' : 'Offline';
+        }
+      });
+    }
+
+    async function loadConversations() {
+      try {
+        const data = await apiRequest('/messages/conversations');
+        displayConversations(data.conversations);
+      } catch (error) {
+        console.error('Error loading conversations:', error);
+      }
+    }
+
+    function displayConversations(conversations) {
+      const container = document.getElementById('conversations-list');
+
+      if (conversations.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 20px;"><p>No conversations yet</p></div>';
+        return;
+      }
+
+      container.innerHTML = conversations.map(conv => `
+        <div class="chat-item ${currentChat && currentChat.id === conv.user.id ? 'active' : ''}" onclick="openChat('${conv.user.id}', '${conv.user.name}')">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="user-avatar" style="width: 40px; height: 40px; font-size: 16px;">${getInitials(conv.user.name)}</div>
+            <div style="flex: 1;">
+              <h4 style="margin-bottom: 4px;">${conv.user.name}</h4>
+              <p style="font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${conv.lastMessage}</p>
+            </div>
+            ${conv.unreadCount > 0 ? `<span class="badge badge-danger">${conv.unreadCount}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function openChat(userId, userName) {
+      currentChat = { id: userId, name: userName };
+
+      document.getElementById('empty-chat').style.display = 'none';
+      document.getElementById('chat-header').style.display = 'block';
+      document.getElementById('chat-messages').style.display = 'flex';
+      document.getElementById('chat-input-container').style.display = 'flex';
+
+      document.getElementById('chat-user-name').textContent = userName;
+
+      try {
+        const data = await apiRequest(`/messages/conversation/${userId}`);
+        displayConversation(data.messages);
+        markAsRead(userId);
+        loadConversations();
+      } catch (error) {
+        console.error('Error loading conversation:', error);
+      }
+    }
+
+    function displayConversation(messages) {
+      const container = document.getElementById('chat-messages');
+
+      if (messages.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="flex: 1;"><p>No messages yet. Start the conversation!</p></div>';
+        return;
+      }
+
+      container.innerHTML = messages.map(msg => {
+        const isSent = msg.sender_id === user.id;
+        return `<div class="message ${isSent ? 'sent' : 'received'}">${msg.message}</div>`;
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function displayMessage(message, type) {
+      const container = document.getElementById('chat-messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+      messageDiv.textContent = message;
+      container.appendChild(messageDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    document.getElementById('message-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    async function sendMessage() {
+      const input = document.getElementById('message-input');
+      const message = input.value.trim();
+
+      if (!message || !currentChat) return;
+
+      try {
+        await apiRequest('/messages/send', {
+          method: 'POST',
+          body: JSON.stringify({
+            receiverId: currentChat.id,
+            message
+          })
+        });
+
+        displayMessage(message, 'sent');
+        input.value = '';
+
+        if (socket) {
+          socket.emit('send_message', {
+            receiverId: currentChat.id,
+            senderId: user.id,
+            senderName: user.name,
+            message
+          });
+        }
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function markAsRead(senderId) {
+      try {
+        await apiRequest(`/messages/read/${senderId}`, {
+          method: 'PUT'
+        });
+      } catch (error) {
+        console.error('Error marking as read:', error);
+      }
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatUserId = urlParams.get('user');
+
+    if (chatUserId) {
+      apiRequest(`/connections/list`).then(data => {
+        const connection = data.connections.find(c => c.id === chatUserId);
+        if (connection) {
+          openChat(connection.id, connection.name);
+        }
+      });
+    }
+
+    initSocket();
+    loadConversations();
+  </script>
+</body>
+</html>

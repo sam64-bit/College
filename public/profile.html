@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - CampusConnect</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container navbar-content">
+      <a href="/" class="navbar-brand">AlumniHub++ - Profile</a>
+      <div class="navbar-menu">
+        <a href="/" id="dashboard-link">Dashboard</a>
+        <a href="/connections">Connections</a>
+        <a href="/opportunities">Opportunities</a>
+        <a href="/chat">Messages</a>
+        <a href="/feed">Feed</a>
+        <a href="/profile">Profile</a>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="container">
+      <div class="card">
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 30px;">
+          <div class="user-avatar" style="width: 100px; height: 100px; font-size: 36px;" id="avatar"></div>
+          <div>
+            <h2 id="profile-name"></h2>
+            <p id="profile-role" style="color: #6b7280;"></p>
+            <p><span class="badge badge-success" id="profile-status"></span></p>
+          </div>
+        </div>
+
+        <div id="error-message" class="error-message" style="display: none;"></div>
+        <div id="success-message" class="success-message" style="display: none;"></div>
+
+        <form id="profile-form">
+          <h3 style="margin-bottom: 15px;">Personal Information</h3>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" id="name" required>
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="email" readonly style="background: #f3f4f6;">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Branch/Department</label>
+              <input type="text" id="branch">
+            </div>
+            <div class="form-group">
+              <label>Batch Year</label>
+              <input type="number" id="batch_year">
+            </div>
+          </div>
+
+          <div id="student-fields" style="display: none;">
+            <h3 style="margin: 20px 0 15px 0;">Student Information</h3>
+
+            <div class="form-group">
+              <label>Career Interests</label>
+              <textarea id="career_interests"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Dream Companies</label>
+              <input type="text" id="dream_companies" placeholder="e.g., Google, Microsoft">
+            </div>
+
+            <div class="checkbox-group form-group">
+              <input type="checkbox" id="looking_for_guidance">
+              <label for="looking_for_guidance">Looking for guidance/mentorship</label>
+            </div>
+          </div>
+
+          <div id="alumni-fields" style="display: none;">
+            <h3 style="margin: 20px 0 15px 0;">Alumni Information</h3>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Current Company</label>
+                <input type="text" id="company">
+              </div>
+              <div class="form-group">
+                <label>Job Role</label>
+                <input type="text" id="job_role">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Career Path</label>
+              <select id="career_path">
+                <option value="">Select Career Path</option>
+                <option value="placement">Placement</option>
+                <option value="higher_studies">Higher Studies</option>
+                <option value="govt">Government</option>
+                <option value="startup">Startup</option>
+              </select>
+            </div>
+
+            <div class="checkbox-group form-group">
+              <input type="checkbox" id="open_for_referral">
+              <label for="open_for_referral">Open for providing referrals</label>
+            </div>
+
+            <div class="checkbox-group form-group">
+              <input type="checkbox" id="open_for_guidance">
+              <label for="open_for_guidance">Open for providing guidance</label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Update Profile</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    if (!checkAuth()) {
+      throw new Error('Unauthorized');
+    }
+
+    const user = getUser();
+    document.getElementById('dashboard-link').href = user.role === 'alumni' ? '/dashboard-alumni' : '/dashboard-student';
+
+    async function loadProfile() {
+      try {
+        const data = await apiRequest('/auth/profile');
+        const profile = data.user;
+
+        document.getElementById('avatar').textContent = getInitials(profile.name);
+        document.getElementById('profile-name').textContent = profile.name;
+        document.getElementById('profile-role').textContent = profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
+        document.getElementById('profile-status').textContent = profile.status.toUpperCase();
+
+        document.getElementById('name').value = profile.name;
+        document.getElementById('email').value = profile.email;
+        document.getElementById('branch').value = profile.branch || '';
+        document.getElementById('batch_year').value = profile.batch_year || '';
+
+        if (profile.role === 'student') {
+          document.getElementById('student-fields').style.display = 'block';
+          document.getElementById('career_interests').value = profile.career_interests || '';
+          document.getElementById('dream_companies').value = profile.dream_companies || '';
+          document.getElementById('looking_for_guidance').checked = profile.looking_for_guidance || false;
+        } else if (profile.role === 'alumni') {
+          document.getElementById('alumni-fields').style.display = 'block';
+          document.getElementById('company').value = profile.company || '';
+          document.getElementById('job_role').value = profile.job_role || '';
+          document.getElementById('career_path').value = profile.career_path || '';
+          document.getElementById('open_for_referral').checked = profile.open_for_referral || false;
+          document.getElementById('open_for_guidance').checked = profile.open_for_guidance || false;
+        }
+      } catch (error) {
+        showError('Failed to load profile');
+      }
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+      hideSuccess();
+
+      const updates = {
+        name: document.getElementById('name').value,
+        branch: document.getElementById('branch').value,
+        batch_year: parseInt(document.getElementById('batch_year').value)
+      };
+
+      if (user.role === 'student') {
+        updates.career_interests = document.getElementById('career_interests').value;
+        updates.dream_companies = document.getElementById('dream_companies').value;
+        updates.looking_for_guidance = document.getElementById('looking_for_guidance').checked;
+      } else if (user.role === 'alumni') {
+        updates.company = document.getElementById('company').value;
+        updates.job_role = document.getElementById('job_role').value;
+        updates.career_path = document.getElementById('career_path').value;
+        updates.open_for_referral = document.getElementById('open_for_referral').checked;
+        updates.open_for_guidance = document.getElementById('open_for_guidance').checked;
+      }
+
+      try {
+        const data = await apiRequest('/auth/profile', {
+          method: 'PUT',
+          body: JSON.stringify(updates)
+        });
+
+        setAuth(getToken(), data.user);
+        showSuccess('Profile updated successfully!');
+        loadProfile();
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>

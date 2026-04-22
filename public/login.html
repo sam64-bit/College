@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - CampusConnect</title>
+  
+  <style>
+/* ========== GLOBAL RESET ========== */
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+}
+
+body{
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  /* MULTI COLOR BACKGROUND */
+  background: linear-gradient(
+    135deg,
+    #ff9a9e 0%,
+    #fad0c4 25%,
+    #a1c4fd 55%,
+    #c2e9fb 100%
+  );
+}
+
+/* ========== MAIN CARD ========== */
+.auth-container{
+  width:100%;
+  max-width:420px;
+  padding:20px;
+}
+
+.auth-box{
+  border-radius:18px;
+  padding:40px 35px;
+
+  /* DIFFERENT CARD COLOR */
+  background: linear-gradient(160deg, #ffffff, #f1f5ff);
+  box-shadow:0 25px 60px rgba(0,0,0,0.15);
+
+  animation:fadeUp .6s ease;
+}
+
+@keyframes fadeUp{
+  from{opacity:0; transform:translateY(30px);}
+  to{opacity:1; transform:translateY(0);}
+}
+
+/* ========== TITLE ========== */
+.auth-box h1{
+  text-align:center;
+  font-size:34px;
+  font-weight:700;
+
+  /* GRADIENT TEXT */
+  background:linear-gradient(90deg,#ff6a00,#6a5cff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+.auth-box p{
+  text-align:center;
+  color:#6b7280 !important;
+  margin-bottom:25px;
+}
+
+/* ========== FORM ========== */
+.form-group{
+  margin-bottom:18px;
+}
+
+label{
+  font-size:14px;
+  color:#374151;
+  margin-bottom:6px;
+  display:block;
+}
+
+input{
+  width:100%;
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid #d1d5db;
+  outline:none;
+  background:#f9fafb;
+  transition:all .25s ease;
+}
+
+input:focus{
+  border-color:#6a5cff;
+  background:white;
+  box-shadow:0 0 0 3px rgba(106,92,255,0.18);
+}
+
+/* ========== BUTTON ========== */
+.btn-primary{
+  background:linear-gradient(135deg,#ff7a18,#ff3c83);
+  border:none;
+  padding:12px;
+  color:white;
+  font-weight:600;
+  border-radius:10px;
+  cursor:pointer;
+  transition:.25s;
+}
+
+.btn-primary:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 25px rgba(255,60,131,.35);
+}
+
+.btn-primary:active{
+  transform:scale(.98);
+}
+
+/* ========== LINKS ========== */
+a{
+  color:#6a5cff !important;
+  font-weight:600;
+  text-decoration:none;
+}
+a:hover{ text-decoration:underline; }
+
+/* ========== ERROR BOX ========== */
+.error-message{
+  background:#ffe4e6;
+  border:1px solid #ffb4b4;
+  color:#b91c1c;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:15px;
+}
+
+/* ========== DEMO BOX ========== */
+.auth-box div[style*="background"]{
+  background:linear-gradient(135deg,#e0f7fa,#e0ecff) !important;
+  color:#1f2937;
+  border-radius:12px !important;
+  border:1px solid #c7d2fe;
+}
+
+/* Divider */
+hr{
+  border-top:1px solid #e5e7eb !important;
+}
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-box">
+      <h1>AlumniHub++</h1>
+      <p style="text-align: center; margin-bottom: 30px; color: #6b7280;">Institutional Professional Networking & Mentorship Platform</p>
+
+      <div id="error-message" class="error-message" style="display: none;"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">Login</button>
+      </form>
+
+      <p style="text-align: center;">
+        Don't have an account? <a href="/register" style="color: #2563eb;">Register here</a>
+      </p>
+
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+
+      <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; font-size: 14px;">
+        <strong>Demo Accounts:</strong><br>
+        Admin: admin@campus.edu / admin123<br>
+        (Register as student or alumni to test)
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const data = await apiRequest('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password })
+        });
+
+        setAuth(data.token, data.user);
+
+        if (data.user.role === 'admin') {
+          window.location.href = '/admin';
+        } else if (data.user.role === 'alumni') {
+          window.location.href = '/dashboard-alumni';
+        } else {
+          window.location.href = '/dashboard-student';
+        }
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+  </script>
+</body>
+</html>

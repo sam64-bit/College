@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CampusConnect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+
+/* ===== BACKGROUND ===== */
+body{
+  background:linear-gradient(135deg,#ff9a9e 0%,#fad0c4 30%,#a1c4fd 65%,#c2e9fb 100%);
+  min-height:100vh;
+  color:#1f2937;
+}
+
+/* ===== HEADER (FLOATING) ===== */
+header{
+  position:sticky;
+  top:20px;
+  z-index:10;
+
+  background:rgba(255,255,255,.55);
+  backdrop-filter:blur(12px);
+  border-radius:16px;
+  padding:16px 28px;
+  margin-bottom:40px;
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+}
+
+.logo{
+  font-size:28px;
+  font-weight:700;
+  background:linear-gradient(90deg,#ff6a00,#6a5cff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+/* ===== CONTAINER ===== */
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:40px 20px;
+}
+
+/* ===== HERO MAIN CARD ===== */
+.hero{
+  background:rgba(255,255,255,.45);
+  backdrop-filter:blur(14px);
+  border-radius:24px;
+  padding:50px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:40px;
+  box-shadow:0 25px 70px rgba(0,0,0,.18);
+}
+
+/* ===== TEXT BOX ===== */
+.hero-text{
+  flex:1;
+  background:rgba(255,255,255,.75);
+  padding:35px;
+  border-radius:20px;
+  box-shadow:0 15px 40px rgba(0,0,0,.12);
+}
+
+.hero-text h1{
+  font-size:44px;
+  line-height:1.2;
+  margin-bottom:20px;
+  background:linear-gradient(90deg,#ff6a00,#6a5cff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+.hero-text p{
+  color:#374151;
+  font-size:17px;
+  margin-bottom:30px;
+}
+
+/* ===== IMAGE BOX ===== */
+.hero img{
+  flex:1;
+  background:rgba(255,255,255,.75);
+  padding:25px;
+  border-radius:20px;
+  box-shadow:0 15px 40px rgba(0,0,0,.12);
+}
+
+/* ===== BUTTON ===== */
+.btn{
+  background:linear-gradient(135deg,#ff7a18,#ff3c83);
+  border:none;
+  padding:14px 30px;
+  border-radius:12px;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  transition:.3s;
+  box-shadow:0 10px 25px rgba(255,60,131,.25);
+}
+
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 14px 35px rgba(255,60,131,.4);
+}
+
+/* ===== FEATURE CARDS ===== */
+.card-grid{
+  margin-top:70px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:25px;
+}
+
+.card{
+  background:rgba(255,255,255,.65);
+  backdrop-filter:blur(10px);
+  padding:28px;
+  border-radius:18px;
+  box-shadow:0 12px 30px rgba(0,0,0,.15);
+  transition:.3s;
+}
+
+.card:hover{
+  transform:translateY(-8px) scale(1.02);
+}
+
+.card h3{
+  margin-bottom:10px;
+  background:linear-gradient(90deg,#ff6a00,#6a5cff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+.card p{color:#374151}
+
+/* ===== STATS ===== */
+.stats{
+  display:flex;
+  justify-content:space-around;
+  margin:90px 0;
+}
+
+.stat{
+  background:rgba(255,255,255,.7);
+  padding:25px 35px;
+  border-radius:18px;
+  text-align:center;
+  box-shadow:0 12px 25px rgba(0,0,0,.12);
+}
+
+.stat h2{
+  font-size:40px;
+  background:linear-gradient(90deg,#ff6a00,#6a5cff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+/* ===== FOOTER ===== */
+footer{
+  text-align:center;
+  color:#4b5563;
+  margin-top:60px;
+  font-weight:500;
+}
+
+/* ===== MOBILE ===== */
+@media(max-width:900px){
+  .hero{
+    flex-direction:column;
+    padding:30px;
+  }
+
+  .hero-text h1{
+    font-size:34px;
+    text-align:center;
+  }
+
+  .hero-text{
+    text-align:center;
+  }
+
+  .stats{
+    flex-direction:column;
+    gap:20px;
+  }
+}
+</style>
+
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">AlumniHub++</div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-text">
+        <h1>Your College Network. <br> Your Future Connections.</h1>
+        <p>A private professional platform where students and alumni connect, share opportunities, seek guidance and grow together inside one trusted university community.</p>
+        <button class="btn" onclick="goLogin()">Get Started</button>
+      </div>
+      <img src="images/wel.png" width="420" alt="network">
+    </section>
+
+    <section class="card-grid">
+      <div class="card">
+        <h3>Smart Connections</h3>
+        <p>Discover seniors and juniors based on branch, skills and career interests automatically.</p>
+      </div>
+      <div class="card">
+        <h3>Opportunities & Referrals</h3>
+        <p>Alumni post internships and jobs while students apply directly inside the platform.</p>
+      </div>
+      <div class="card">
+        <h3>Guidance & Mentorship</h3>
+        <p>Ask doubts, resume reviews and career help after connecting with alumni.</p>
+      </div>
+      <div class="card">
+        <h3>Verified Community</h3>
+        <p>University verified students and alumni ensure safe and trusted networking.</p>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat"><h2>1</h2><p>Unified Platform</p></div>
+      <div class="stat"><h2>3</h2><p>User Roles</p></div>
+      <div class="stat"><h2>∞</h2><p>Connections</p></div>
+    </section>
+
+    <footer>
+      <p>CampusConnect — Institutional Professional Networking & Mentorship Platform</p>
+    </footer>
+  </div>
+
+  <script>
+    function goLogin(){
+      window.location.href='login.html';
+    }
+  </script>
+</body>
+</html>
